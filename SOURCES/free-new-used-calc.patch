@@ -1,0 +1,38 @@
+diff -up ./proc/sysinfo.c.ori ./proc/sysinfo.c
+--- ./proc/sysinfo.c.ori	2021-02-09 11:11:25.000000000 +0100
++++ ./proc/sysinfo.c	2022-07-29 14:08:42.093322509 +0200
+@@ -786,10 +786,8 @@ nextline:
+      where such values will be dramatically distorted over those of the host. */
+   if (kb_main_available > kb_main_total)
+     kb_main_available = kb_main_free;
+-  mem_used = kb_main_total - kb_main_free - kb_main_cached - kb_main_buffers;
+-  if (mem_used < 0)
+-    mem_used = kb_main_total - kb_main_free;
+-  kb_main_used = (unsigned long)mem_used;
++  mem_used = kb_main_total - kb_main_available;
++  kb_main_used = mem_used < 0 ? 0 : (unsigned long) mem_used;
+ 
+   /* zero? might need fallback for 2.6.27 <= kernel <? 3.14 */
+   if (!kb_main_available) {
+diff -up ./top/top.c.ori ./top/top.c
+--- ./top/top.c.ori	2021-02-09 11:11:25.000000000 +0100
++++ ./top/top.c	2022-07-29 13:59:04.681966019 +0200
+@@ -6076,12 +6076,16 @@ numa_nope:
+          char used[SMLBUFSIZ], util[SMLBUFSIZ], dual[MEDBUFSIZ];
+          float pct_used, pct_misc, pct_swap;
+          int ix, num_used, num_misc;
++         unsigned long my_used;
+ 
+-         pct_used = (float)kb_main_used * (100.0 / (float)kb_main_total);
++         // upstream kept old calculation of 'used' here for some reason
++         // https://gitlab.com/procps-ng/procps/-/commit/047d16ccfda6638eda78f56b67def196a2002b6f
++         my_used = kb_main_total - kb_main_free - kb_main_cached - kb_main_buffers;
++         pct_used = (float)my_used * (100.0 / (float)kb_main_total);
+ #ifdef MEMGRAPH_OLD
+          pct_misc = (float)(kb_main_buffers + kb_main_cached) * (100.0 / (float)kb_main_total);
+ #else
+-         pct_misc = (float)(kb_main_total - kb_main_available - kb_main_used) * (100.0 / (float)kb_main_total);
++         pct_misc = (float)(kb_main_total - kb_main_available - my_used) * (100.0 / (float)kb_main_total);
+ #endif
+          if (pct_used + pct_misc > 100.0 || pct_misc < 0) pct_misc = 0;
+          pct_swap = kb_swap_total ? (float)kb_swap_used * (100.0 / (float)kb_swap_total) : 0;
