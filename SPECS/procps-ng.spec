@@ -4,7 +4,7 @@
 Summary: System and process monitoring utilities
 Name: procps-ng
 Version: 3.3.15
-Release: 13%{?dist}
+Release: 14%{?dist}
 License: GPL+ and GPLv2 and GPLv2+ and GPLv3+ and LGPLv2+
 Group: Applications/System
 URL: https://sourceforge.net/projects/procps-ng/
@@ -28,6 +28,7 @@ Patch9: procps-ng-3.3.15-pgrep-uid-gid-overflow.patch
 Patch10: procps-ng-3.3.15-display-sig-unsafe.patch
 Patch11: procps-ng-3.3.15-ps-select.patch
 Patch12: procps-ng-3.3.15-ps-out-of-bonds-read.patch
+Patch13: procps-ng-3.3.15-cve-2023-4016.patch
 
 BuildRequires: ncurses-devel
 BuildRequires: libtool
@@ -170,6 +171,10 @@ ln -s %{_bindir}/pidof %{buildroot}%{_sbindir}/pidof
 %files i18n -f %{name}.lang
 
 %changelog
+* Tue Aug 15 2023 Jan Rybar <jrybar@redhat.com> - 3.3.15-14
+- CVE-2023-4016: ps: possible buffer overflow
+- Resolves: rhbz#2228503
+
 * Tue Jan 17 2023 Jan Rybar <jrybar@redhat.com> - 3.3.15-13
 - version bump requested to create -devel subpkg for CRB inclusion
 - Resolves: rhbz#2164781
