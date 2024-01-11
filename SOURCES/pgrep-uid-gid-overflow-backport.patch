@@ -1,0 +1,72 @@
+From 401d587d2deb78adcf62517654f955a24b2d537d Mon Sep 17 00:00:00 2001
+From: Todd Lewis <todd_lewis@unc.edu>
+Date: Mon, 25 Oct 2021 19:38:10 -0400
+Subject: [PATCH] fix uid/gid > 2^31
+
+---
+ pgrep.c         | 10 +++++++---
+ proc/readproc.h | 12 ++++++------
+ 2 files changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/pgrep.c b/pgrep.c
+index 1905cd1d..7d731620 100644
+--- a/pgrep.c
++++ b/pgrep.c
+@@ -229,8 +229,12 @@ static int strict_atol (const char *restrict str, long *restrict value)
+ 
+ 	for ( ; *str; ++str) {
+ 		if (! isdigit (*str))
+-			return (0);
++			return 0;
++		if (res >= LONG_MAX / 10)
++			return 0;
+ 		res *= 10;
++		if (res >= LONG_MAX - (*str - '0'))
++			return 0;
+ 		res += *str - '0';
+ 	}
+ 	*value = sign * res;
+@@ -305,7 +309,7 @@ static int conv_uid (const char *restrict name, struct el *restrict e)
+ 		xwarnx(_("invalid user name: %s"), name);
+ 		return 0;
+ 	}
+-	e->num = (int) pwd->pw_uid;
++	e->num = pwd->pw_uid;
+ 	return 1;
+ }
+ 
+@@ -322,7 +326,7 @@ static int conv_gid (const char *restrict name, struct el *restrict e)
+ 		xwarnx(_("invalid group name: %s"), name);
+ 		return 0;
+ 	}
+-	e->num = (int) grp->gr_gid;
++	e->num = grp->gr_gid;
+ 	return 1;
+ }
+ 
+diff --git a/proc/readproc.h b/proc/readproc.h
+index 7905ea99..8d9ae392 100644
+--- a/proc/readproc.h
++++ b/proc/readproc.h
+@@ -159,12 +159,12 @@ typedef struct proc_t {
+ 	session,	// stat            session id
+ 	nlwp,		// stat,status     number of threads, or 0 if no clue
+ 	tgid,		// (special)       thread group ID, the POSIX PID (see also: tid)
+-	tty,		// stat            full device number of controlling terminal
+-	/* FIXME: int uids & gids should be uid_t or gid_t from pwd.h */
+-        euid, egid,     // stat(),status   effective
+-        ruid, rgid,     // status          real
+-        suid, sgid,     // status          saved
+-        fuid, fgid,     // status          fs (used for file access only)
++	tty;		// stat            full device number of controlling terminal
++    uid_t euid; gid_t egid; // stat(),status effective
++    uid_t ruid; gid_t rgid; // status        real
++    uid_t suid; gid_t sgid; // status        saved
++    uid_t fuid; gid_t fgid; // status        fs (used for file access only)
++    int
+ 	tpgid,		// stat            terminal process group id
+ 	exit_signal,	// stat            might not be SIGCHLD
+ 	processor;      // stat            current (or most recent?) CPU
+-- 
+GitLab
+
