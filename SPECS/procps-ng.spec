@@ -4,7 +4,7 @@
 Summary: System and process monitoring utilities
 Name: procps-ng
 Version: 3.3.17
-Release: 11%{?dist}
+Release: 13%{?dist}
 License: GPL+ and GPLv2 and GPLv2+ and GPLv3+ and LGPLv2+
 URL: https://sourceforge.net/projects/procps-ng/
 
@@ -24,6 +24,8 @@ Patch6: sysctl-print-dotted-keys-again.patch
 Patch7: pgrep-uid-gid-overflow-backport.patch
 Patch8: display-sig-unsafe.patch
 Patch9: ps-out-of-bonds-read.patch
+Patch10: sysctl-nameonly-shows-value.patch
+Patch11: cve-2023-4016.patch
 
 
 BuildRequires: make
@@ -95,8 +97,7 @@ Conflicts: man-pages-pl < 0.7-5
 Internationalization pack for procps-ng
 
 %prep
-%setup -q -n procps-%{version}
-%autopatch -p1
+%autosetup -S git -n procps-%{version}
 
 cp -p %{SOURCE1} .
 cp -p %{SOURCE2} top/
@@ -167,6 +168,14 @@ ln -s %{_bindir}/pidof %{buildroot}%{_sbindir}/pidof
 %files i18n -f %{name}.lang
 
 %changelog
+* Fri Aug 11 2023 Jan Rybar <jrybar@redhat.com> - 3.3.17-13
+- ps: mitigation of possible buffer overflow
+- Resolves: rhbz#2228504
+
+* Tue Jul 25 2023 Jan Rybar <jrybar@redhat.com> - 3.3.17-12
+- sysctl: '-N' option shows values instead of names if '-p'
+- Resolves: rhbz#2222056
+
 * Thu Jan 26 2023 Jan Rybar <jrybar@redhat.com> - 3.3.17-11
 - version bump requested to create -devel subpkg for CRB inclusion
 - Resolves: rhbz#2158253
