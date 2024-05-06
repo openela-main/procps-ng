@@ -4,7 +4,7 @@
 Summary: System and process monitoring utilities
 Name: procps-ng
 Version: 3.3.17
-Release: 13%{?dist}
+Release: 14%{?dist}
 License: GPL+ and GPLv2 and GPLv2+ and GPLv3+ and LGPLv2+
 URL: https://sourceforge.net/projects/procps-ng/
 
@@ -26,6 +26,7 @@ Patch8: display-sig-unsafe.patch
 Patch9: ps-out-of-bonds-read.patch
 Patch10: sysctl-nameonly-shows-value.patch
 Patch11: cve-2023-4016.patch
+Patch12: top-invisible-tasks-if-memsort.patch
 
 
 BuildRequires: make
@@ -168,6 +169,10 @@ ln -s %{_bindir}/pidof %{buildroot}%{_sbindir}/pidof
 %files i18n -f %{name}.lang
 
 %changelog
+* Mon Jan 22 2024 Jan Rybar <jrybar@redhat.com> - 3.3.17-14
+- top: processes for specific user not displayed if sorted by mem
+- Resolves: RHEL-16278
+
 * Fri Aug 11 2023 Jan Rybar <jrybar@redhat.com> - 3.3.17-13
 - ps: mitigation of possible buffer overflow
 - Resolves: rhbz#2228504

@@ -1,0 +1,12 @@
+diff --git a/top/top.c b/top/top.c
+index 58badaa..21fab42 100644
+--- a/top/top.c
++++ b/top/top.c
+@@ -5704,6 +5704,7 @@ static void keys_xtra (int ch) {
+    switch (ch) {
+       case 'M':
+          w->rc.sortindx = EU_MEM;
++         mkVIZrow1(w);         // we need to avoid hiding tasks if scrolled too much
+ //       xmsg = "Memory";
+          break;
+       case 'N':
