@@ -1,0 +1,183 @@
+diff --git a/library/pids.c b/library/pids.c
+index 6ae94ad..41673b5 100644
+--- a/library/pids.c
++++ b/library/pids.c
+@@ -1288,8 +1288,11 @@ PROCPS_EXPORT int procps_pids_new (
+         memcpy(p->items, items, sizeof(enum pids_item) * numitems);
+         p->items[numitems] = PIDS_logical_end;
+         pids_libflags_set(p);
+-        if (!pids_prep_func_array(p))
++        if (!pids_prep_func_array(p)) {
++            free(p->items);
++            free(p);
+             return -ENOMEM;
++        }
+     }
+ 
+     if (!(p->hist = calloc(1, sizeof(struct history_info)))
+diff --git a/src/pgrep.c b/src/pgrep.c
+index d8e57df..56c020f 100644
+--- a/src/pgrep.c
++++ b/src/pgrep.c
+@@ -127,7 +127,6 @@ static bool use_sigqueue = false;
+ static bool require_handler = false;
+ static union sigval sigval = {0};
+ 
+-static const char *opt_delim = "\n";
+ static struct el *opt_pgrp = NULL;
+ static struct el *opt_rgid = NULL;
+ static struct el *opt_pid = NULL;
+@@ -139,6 +138,7 @@ static struct el *opt_euid = NULL;
+ static struct el *opt_ruid = NULL;
+ static struct el *opt_nslist = NULL;
+ static struct el *opt_cgroup = NULL;
++static char *opt_delim = NULL;
+ static char *opt_pattern = NULL;
+ static char *opt_pidfile = NULL;
+ static char *opt_runstates = NULL;
+@@ -978,6 +978,7 @@ static void parse_opts (int argc, char **argv)
+             opt_count = 1;
+             break;
+         case 'd':   /* Solaris: change the delimiter */
++            free(opt_delim);
+             opt_delim = xstrdup (optarg);
+             break;
+         case 'f':   /* Solaris: match full process name (as in "ps -f") */
+@@ -1057,6 +1058,7 @@ static void parse_opts (int argc, char **argv)
+             opt_ns_pid = atoi(optarg);
+             if (opt_ns_pid == 0)
+ 		case 'r': /* match by runstate */
++            free(opt_runstates);
+ 			opt_runstates = xstrdup (optarg);
+ 			++criteria_count;
+ 			break;
+@@ -1133,6 +1135,8 @@ int main (int argc, char **argv)
+     struct epoll_event ev, events[32];
+ #endif
+ 
++    opt_delim = xstrdup("\n");
++
+ #ifdef HAVE_PROGRAM_INVOCATION_NAME
+     program_invocation_name = program_invocation_short_name;
+ #endif
+@@ -1154,6 +1158,8 @@ int main (int argc, char **argv)
+             else
+                 output_numlist (procs,num);
+         }
++        if (opt_delim)
++            free(opt_delim);
+         return !num;
+     case PKILL:
+         for (i = 0; i < num; i++) {
+@@ -1170,6 +1176,8 @@ int main (int argc, char **argv)
+         }
+         if (opt_count)
+             fprintf(stdout, "%d\n", num);
++        if (opt_delim)
++            free(opt_delim);
+         return !kill_count;
+ #ifdef ENABLE_PIDWAIT
+     case PIDWAIT:
+diff --git a/src/ps/parser.c b/src/ps/parser.c
+index 1f50a7a..9977f93 100644
+--- a/src/ps/parser.c
++++ b/src/ps/parser.c
+@@ -1076,28 +1076,44 @@ static const char *parse_trailing_pids(void){
+     case '-':  err = parse_pid(++data, grpnode->u + grpnode->n++); break;
+     case '+':  err = parse_pid(++data, sidnode->u + sidnode->n++); break;
+     }
+-    if(err) return err;     /* the node gets freed with the list */
++    if(err) goto error;
+   }
+ 
+   if(pidnode->n){
+     pidnode->next = selection_list;
+     selection_list = pidnode;
+     selection_list->typecode = SEL_PID;
+-  }  /* else free both parts */
++  }
++  else {
++    free(pidnode);
++  }
+ 
+   if(grpnode->n){
+     grpnode->next = selection_list;
+     selection_list = grpnode;
+     selection_list->typecode = SEL_PGRP;
+-  }  /* else free both parts */
++  }
++  else {
++    free(grpnode);
++  }
+ 
+   if(sidnode->n){
+     sidnode->next = selection_list;
+     selection_list = sidnode;
+     selection_list->typecode = SEL_SESS;
+-  }  /* else free both parts */
++  }
++  else {
++    free(sidnode);
++  }
+ 
+   return NULL;
++
++error:
++  free(pidnode);
++  free(grpnode);
++  free(sidnode);
++
++  return err;
+ }
+ 
+ /************** misc stuff ***********/
+diff --git a/src/ps/sortformat.c b/src/ps/sortformat.c
+index a76ddee..a4c98aa 100644
+--- a/src/ps/sortformat.c
++++ b/src/ps/sortformat.c
+@@ -165,8 +165,10 @@ static const char *aix_format_parse(sf_node *sfn){
+     if(*walk == '%'){
+       const aix_struct *aix;
+       walk++;
+-      if(*walk == '%')
++      if(*walk == '%'){
++        free(buf);
+         return _("missing AIX field descriptor");
++      }
+       aix = search_aix_array(*walk);
+       walk++;
+       if(!aix){
+diff --git a/src/top/top.c b/src/top/top.c
+index 969c553..5f507fe 100644
+--- a/src/top/top.c
++++ b/src/top/top.c
+@@ -3825,7 +3825,7 @@ static int cfg_xform (WIN_t *q, char *flds, const char *defs) {
+          q->rc.sortindx = (fields_dst[x] & 0x7f) - FLD_OFFSET;
+       }
+       // now we're in a 3.3.0 format (soon to be transformed) ...
+-      strcpy(flds, fields_dst);
++      strncpy(flds, fields_dst, f);
+    }
+ 
+    // lastly, let's attend to the 3.3.0 - 3.3.17 fieldcurs format ...
+@@ -3980,6 +3980,7 @@ end_oops:
+          * a configuration file (personal or system-wide default) */
+ static const char *configs_file (FILE *fp, const char *name, float *delay) {
+    char fbuf[LRGBUFSIZ];
++   char format_str[8];  // 6 would be enough, but in case LRGBUFSIZ gets larger in the future...
+    int i, n, tmp_whole, tmp_fract;
+    const char *p = NULL;
+ 
+@@ -4013,10 +4014,11 @@ static const char *configs_file (FILE *fp, const char *name, float *delay) {
+       WIN_t *w = &Winstk[i];
+       p = fmtmk(N_fmt(RC_bad_entry_fmt), i+1, name);
+ 
++      snprintf(format_str, sizeof(format_str), "%%%ds\n", LRGBUFSIZ-1);
+       if (1 != fscanf(fp, "%3s\tfieldscur=", w->rc.winname))
+          return p;
+       if (Rc.id < RCF_XFORMED_ID)
+-         fscanf(fp, "%s\n", fbuf);
++         fscanf(fp, format_str, fbuf);   // because uncapped scanf+%s is considered as nasty as gets
+       else {
+          for (j = 0; ; j++)
+             if (1 != fscanf(fp, "%d", &w->rc.fieldscur[j]))
