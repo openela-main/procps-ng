@@ -4,13 +4,14 @@
 Summary: System and process monitoring utilities
 Name: procps-ng
 Version: 4.0.4
-Release: 7%{?dist}
+Release: 8%{?dist}
 License: GPL-2.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-or-later
 URL: https://sourceforge.net/projects/procps-ng/
 
 Source0: https://downloads.sourceforge.net/%{name}/%{name}-%{version}.tar.xz
 
 Patch1: osh-findings.patch
+Patch2: top-fix-guest-tics.patch
 
 BuildRequires: make
 BuildRequires: ncurses-devel
@@ -147,6 +148,10 @@ ln -s %{_bindir}/pidof %{buildroot}%{_sbindir}/pidof
 %files i18n -f %{name}.lang
 
 %changelog
+* Wed Apr 16 2025 Jan Rybar <jrybar@redhat.com> - 4.0.4-8
+- fix guest tics (backport upstr patch e1df029e6, 3fb34669)
+- Resolves: RHEL-84051
+
 * Thu Jan 23 2025 Jan Rybar <jrybar@redhat.com> - 4.0.4-7
 - new build needed due to old centpkg glitch
 - Resolves: RHEL-44359

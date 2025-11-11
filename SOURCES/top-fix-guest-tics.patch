@@ -1,0 +1,118 @@
+From f01e5e493644e5c8b50509d23f77796434fbeecc Mon Sep 17 00:00:00 2001
+From: rpm-build <rpm-build>
+Date: Wed, 16 Apr 2025 14:54:20 +0200
+Subject: [PATCH] Backport of upstream patch e1df029e and 3fb34669d
+
+---
+ library/include/stat.h |  6 +++---
+ library/stat.c         | 12 ++++++++----
+ man/top.1              |  3 ---
+ src/top/top.c          |  9 ---------
+ 4 files changed, 11 insertions(+), 19 deletions(-)
+
+diff --git a/library/include/stat.h b/library/include/stat.h
+index 7adefa6..fd7c690 100644
+--- a/library/include/stat.h
++++ b/library/include/stat.h
+@@ -45,8 +45,8 @@ enum stat_item {
+     STAT_TIC_IRQ,                 //  ull_int         "
+     STAT_TIC_SOFTIRQ,             //  ull_int         "
+     STAT_TIC_STOLEN,              //  ull_int         "
+-    STAT_TIC_GUEST,               //  ull_int         "
+-    STAT_TIC_GUEST_NICE,          //  ull_int         "
++    STAT_TIC_GUEST,               //  ull_int         " (note: also included in USER)
++    STAT_TIC_GUEST_NICE,          //  ull_int         " (note: also included in NICE)
+ 
+     STAT_TIC_DELTA_USER,          //   sl_int        derived from above
+     STAT_TIC_DELTA_NICE,          //   sl_int         "
+@@ -63,7 +63,7 @@ enum stat_item {
+     STAT_TIC_SUM_SYSTEM,          //  ull_int        derived from SYSTEM + IRQ + SOFTIRQ tics
+     STAT_TIC_SUM_IDLE,            //  ull_int        derived from IDLE + IOWAIT tics
+     STAT_TIC_SUM_BUSY,            //  ull_int        derived from SUM_TOTAL - SUM_IDLE tics
+-    STAT_TIC_SUM_TOTAL,           //  ull_int        derived from sum of all 10 tics
++    STAT_TIC_SUM_TOTAL,           //  ull_int        derived from sum of all tics, minus 2 GUEST tics
+ 
+     STAT_TIC_SUM_DELTA_USER,      //   sl_int        derived from above
+     STAT_TIC_SUM_DELTA_SYSTEM,    //   sl_int         "
+diff --git a/library/stat.c b/library/stat.c
+index 131cad5..506937b 100644
+--- a/library/stat.c
++++ b/library/stat.c
+@@ -568,11 +568,15 @@ static inline void stat_derive_unique (
+     this->new.xidl
+         = this->new.idle
+         + this->new.iowait;
++    /* note: we exclude guest tics from xtot since ...
++             'user' already includes 'guest'
++             'nice' already includes 'gnice'
++       ( see linux sources: ./kernel/sched/cputime.c, kcpustat_cpu_fetch ) */
+     this->new.xtot
+-        = this->new.xusr + this->new.xsys + this->new.xidl
+-        + this->new.stolen
+-        + this->new.guest
+-        + this->new.gnice;
++        = this->new.xusr
++        + this->new.xsys
++        + this->new.xidl
++        + this->new.stolen;
+     this->new.xbsy
+         = this->new.xtot - this->new.xidl;
+ 
+diff --git a/man/top.1 b/man/top.1
+index 3791dfe..25eff12 100644
+--- a/man/top.1
++++ b/man/top.1
+@@ -527,9 +527,6 @@ Depending on your kernel version, the \fBst\fR field may not be shown.
+     \fBst\fR : time stolen from this vm by the hypervisor
+ .fi
+ 
+-The `sy' value above also reflects the time running a virtual \*(Pu
+-for guest operating systems, including those that have been niced.
+-
+ Beyond the first tasks/threads line, there are alternate \*(PU display
+ modes available via the 4-way `t' \*(CT.
+ They show an abbreviated summary consisting of these elements:
+diff --git a/src/top/top.c b/src/top/top.c
+index 5f507fe..8bf5727 100644
+--- a/src/top/top.c
++++ b/src/top/top.c
+@@ -286,7 +286,6 @@ static enum stat_item Stat_items[] = {
+    STAT_TIC_DELTA_NICE,     STAT_TIC_DELTA_IDLE,
+    STAT_TIC_DELTA_IOWAIT,   STAT_TIC_DELTA_IRQ,
+    STAT_TIC_DELTA_SOFTIRQ,  STAT_TIC_DELTA_STOLEN,
+-   STAT_TIC_DELTA_GUEST,    STAT_TIC_DELTA_GUEST_NICE,
+    STAT_TIC_SUM_DELTA_USER, STAT_TIC_SUM_DELTA_SYSTEM,
+ #ifdef CORE_TYPE_NO
+    STAT_TIC_SUM_DELTA_TOTAL };
+@@ -299,7 +298,6 @@ enum Rel_statitems {
+    stat_NI, stat_IL,
+    stat_IO, stat_IR,
+    stat_SI, stat_ST,
+-   stat_GU, stat_GN,
+    stat_SUM_USR, stat_SUM_SYS,
+ #ifdef CORE_TYPE_NO
+    stat_SUM_TOT };
+@@ -6357,11 +6355,6 @@ static int sum_tics (struct stat_stack *this, const char *pfx, int nobuf) {
+    if (1 > tot_frme) idl_frme = tot_frme = 1;
+    scale = 100.0 / (float)tot_frme;
+ 
+-   /* account for VM tics not otherwise provided for ...
+-      ( with xtra-procps-debug.h, can't use PID_VAL w/ assignment ) */
+-   this->head[stat_SY].result.sl_int += rSv(stat_GU) + rSv(stat_GN);
+-   this->head[stat_SUM_SYS].result.sl_int += rSv(stat_GU) + rSv(stat_GN);
+-
+    /* display some kinda' cpu state percentages
+       (who or what is explained by the passed prefix) */
+    if (Curwin->rc.graph_cpus) {
+@@ -6411,8 +6404,6 @@ static int sum_unify (struct stat_stack *this, int nobuf) {
+    stack[stat_IR].result.sl_int += rSv(stat_IR, sl_int);
+    stack[stat_SI].result.sl_int += rSv(stat_SI, sl_int);
+    stack[stat_ST].result.sl_int += rSv(stat_ST, sl_int);
+-   stack[stat_GU].result.sl_int += rSv(stat_GU, sl_int);
+-   stack[stat_GN].result.sl_int += rSv(stat_GN, sl_int);
+    stack[stat_SUM_USR].result.sl_int += rSv(stat_SUM_USR, sl_int);
+    stack[stat_SUM_SYS].result.sl_int += rSv(stat_SUM_SYS, sl_int);
+    stack[stat_SUM_TOT].result.sl_int += rSv(stat_SUM_TOT, sl_int);
+-- 
+2.48.1
+
