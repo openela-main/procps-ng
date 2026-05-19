@@ -4,7 +4,7 @@
 Summary: System and process monitoring utilities
 Name: procps-ng
 Version: 4.0.4
-Release: 8%{?dist}
+Release: 11%{?dist}
 License: GPL-2.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-or-later
 URL: https://sourceforge.net/projects/procps-ng/
 
@@ -12,6 +12,10 @@ Source0: https://downloads.sourceforge.net/%{name}/%{name}-%{version}.tar.xz
 
 Patch1: osh-findings.patch
 Patch2: top-fix-guest-tics.patch
+Patch3: free-manpage-overcommit-note.patch
+Patch4: sysctl-succ-on-fail.patch
+Patch5: ps-etime-overflow.patch
+Patch6: uptime-w-user-sessions-only.patch
 
 BuildRequires: make
 BuildRequires: ncurses-devel
@@ -148,6 +152,20 @@ ln -s %{_bindir}/pidof %{buildroot}%{_sbindir}/pidof
 %files i18n -f %{name}.lang
 
 %changelog
+* Thu Jan 15 2026 Jan Rybar <jrybar@redhat.com> - 4.0.4-11
+- ps: etime overflow reappeared with rewritten library
+- uptime, w: report user sessions only; upstream backport of 734930e47
+- Resolves: RHEL-60826
+- Resolves: RHEL-141839
+
+* Thu Dec 04 2025 Jan Rybar <jrybar@redhat.com> - 4.0.4-10
+- sysctl: returns success even on fail bug
+- Resolves: RHEL-84138
+
+* Wed Oct 29 2025 Jan Rybar <jrybar@redhat.com> - 4.0.4-9
+- free manpage: expand note on negative value with overcommit
+- Resolves: RHEL-100973
+
 * Wed Apr 16 2025 Jan Rybar <jrybar@redhat.com> - 4.0.4-8
 - fix guest tics (backport upstr patch e1df029e6, 3fb34669)
 - Resolves: RHEL-84051
