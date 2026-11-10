@@ -4,7 +4,7 @@
 Summary: System and process monitoring utilities
 Name: procps-ng
 Version: 4.0.4
-Release: 11%{?dist}
+Release: 13%{?dist}
 License: GPL-2.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-or-later
 URL: https://sourceforge.net/projects/procps-ng/
 
@@ -16,6 +16,8 @@ Patch3: free-manpage-overcommit-note.patch
 Patch4: sysctl-succ-on-fail.patch
 Patch5: ps-etime-overflow.patch
 Patch6: uptime-w-user-sessions-only.patch
+Patch7: uptime-bad-rounding.patch
+Patch8: top-sort-by-mem-begtask-reset.patch
 
 BuildRequires: make
 BuildRequires: ncurses-devel
@@ -152,6 +154,14 @@ ln -s %{_bindir}/pidof %{buildroot}%{_sbindir}/pidof
 %files i18n -f %{name}.lang
 
 %changelog
+* Tue May 12 2026 Jan Rybar <jrybar@redhat.com> - 4.0.4-13
+- top: fix sort-by-memory when beg_task is reset
+- Resolves: RHEL-176043
+
+* Thu Apr 30 2026 Jan Rybar <jrybar@redhat.com> - 4.0.4-12
+- uptime: bad time rounding when using -p
+- Resolves: RHEL-60825
+
 * Thu Jan 15 2026 Jan Rybar <jrybar@redhat.com> - 4.0.4-11
 - ps: etime overflow reappeared with rewritten library
 - uptime, w: report user sessions only; upstream backport of 734930e47

@@ -1,0 +1,43 @@
+diff --git a/library/uptime.c b/library/uptime.c
+index d63bde7..45e7d91 100644
+--- a/library/uptime.c
++++ b/library/uptime.c
+@@ -202,21 +202,21 @@ PROCPS_EXPORT char *procps_uptime_sprint_short(void)
+     if (procps_uptime(&uptime_secs, &idle_secs) < 0)
+         return shortbuf;
+ 
+-    if (uptime_secs>60*60*24*365*10) {
++    if (uptime_secs>=60*60*24*365*10) {
+       updecades = (int) uptime_secs / (60*60*24*365*10);
+       uptime_secs -= updecades*60*60*24*365*10;
+     }
+     else {
+       updecades = 0;
+     }
+-    if (uptime_secs>60*60*24*365) {
++    if (uptime_secs>=60*60*24*365) {
+       upyears = (int) uptime_secs / (60*60*24*365);
+       uptime_secs -= upyears*60*60*24*365;
+     }
+     else {
+       upyears = 0;
+     }
+-    if (uptime_secs>60*60*24*7) {
++    if (uptime_secs>=60*60*24*7) {
+       upweeks = (int) uptime_secs / (60*60*24*7);
+       uptime_secs -= upweeks*60*60*24*7;
+     }
+@@ -230,11 +230,11 @@ PROCPS_EXPORT char *procps_uptime_sprint_short(void)
+     else {
+       updays = 0;
+     }
+-    if (uptime_secs>60*60) {
++    if (uptime_secs>=60*60) {
+         uphours = (int) uptime_secs / (60*60);
+         uptime_secs -= uphours*60*60;
+     }
+-    if (uptime_secs>60) {
++    if (uptime_secs>=60) {
+         upminutes = (int) uptime_secs / 60;
+         uptime_secs -= upminutes*60;
+     }

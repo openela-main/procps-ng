@@ -1,0 +1,28 @@
+diff --git a/src/top/top.c b/src/top/top.c
+index 8bf5727..a2bc500 100644
+--- a/src/top/top.c
++++ b/src/top/top.c
+@@ -5892,6 +5892,7 @@ static void keys_task (int ch) {
+ #endif
+                if (p >= w->procflgs) {
+                   w->rc.sortindx = *p;
++                  w->begtask = 0;
+ #ifndef TREE_NORESET
+                   OFFw(w, Show_FOREST);
+ #endif
+@@ -5913,6 +5914,7 @@ static void keys_task (int ch) {
+ #endif
+                if (p < w->procflgs + w->maxpflgs) {
+                   w->rc.sortindx = *p;
++                  w->begtask = 0;
+ #ifndef TREE_NORESET
+                   OFFw(w, Show_FOREST);
+ #endif
+@@ -6235,6 +6237,7 @@ static void keys_xtra (int ch) {
+       default:                    // keep gcc happy
+          break;
+    }
++   w->begtask = 0;
+ // some have objected to this message, so we'll just keep silent...
+ // show_msg(fmtmk("%s sort compatibility key honored", xmsg));
+ } // end: keys_xtra
